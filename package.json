@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest",
     "start": "node src/index.js",
-    "dev": "nodemon"
+    "dev": "nodemon",
+    "mock:slack:interaction": "node scripts/slack/interact.js"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
     "@types/koa": "^2.0.48",
     "@types/koa-router": "^7.0.40",
     "@types/node": "^11.11.3",
+    "axios": "^0.18.0",
     "eslint": "^5.15.3",
     "nodemon": "^1.18.10",
     "ts-node": "^8.0.3",
