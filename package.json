@@ -1,0 +1,37 @@
+{
+  "name": "eatix",
+  "version": "0.0.1",
+  "description": "Slack Bot to suggest restaurants nearby based on a group's cuisine preferences",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "start": "ts-node src/index.ts",
+    "dev": "nodemon"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.kigroup.de:ki-hacks-march19/eatix.git"
+  },
+  "keywords": [
+    "food",
+    "api",
+    "slack",
+    "twilio"
+  ],
+  "author": "kilabs",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/koa": "^2.0.48",
+    "@types/koa-router": "^7.0.40",
+    "@types/node": "^11.11.3",
+    "nodemon": "^1.18.10",
+    "ts-node": "^8.0.3",
+    "typescript": "^3.3.3333"
+  },
+  "dependencies": {
+    "dotenv": "^7.0.0",
+    "koa": "^2.7.0",
+    "koa-router": "^7.4.0",
+    "zomato": "^1.1.0"
+  }
+}
