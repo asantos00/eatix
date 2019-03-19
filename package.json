@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "start": "ts-node src/index.ts",
+    "start": "node src/index.js",
     "dev": "nodemon"
   },
   "repository": {
@@ -29,9 +29,12 @@
     "typescript": "^3.3.3333"
   },
   "dependencies": {
+    "@slack/client": "^4.12.0",
     "dotenv": "^7.0.0",
     "koa": "^2.7.0",
+    "koa-bodyparser": "^4.2.1",
     "koa-router": "^7.4.0",
+    "lowdb": "^1.0.0",
     "zomato": "^1.1.0"
   }
 }

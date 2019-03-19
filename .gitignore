@@ -84,4 +84,4 @@ typings/
 .dynamodb/
 
 # typescript
-index.js
+# index.js
