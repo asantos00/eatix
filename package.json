@@ -7,7 +7,8 @@
     "test": "jest",
     "start": "node src/index.js",
     "dev": "nodemon",
-    "mock:slack:interaction": "node scripts/slack/interact.js"
+    "mock:slack:interaction": "node scripts/slack/interact.js",
+    "mock:slack:slash": "node scripts/slack/slash.js"
   },
   "repository": {
     "type": "git",

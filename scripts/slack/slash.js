@@ -1,11 +1,11 @@
 const axios = require("axios");
-const demo = require("./interactPayload");
+const slash = require("./slashPayload");
 
 const PORT = 3000;
 
 axios.post(
-  `http://localhost:${PORT}/slack/interact`,
-  demo,
+  `http://localhost:${PORT}/slack`,
+  slash,
   {
     headers: {
       "content-type": "application/json"
