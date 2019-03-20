@@ -181,6 +181,15 @@ async function sendChoices({id}) {
                 "value": cuisineId.toString(),
             }))
         }
+      },
+      {
+        "type": "context",
+        "elements": [
+          {
+            "type": "mrkdwn",
+            "text": "Already choose: "
+          }
+        ]
       }
     ],
 });
