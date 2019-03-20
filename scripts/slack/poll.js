@@ -4,7 +4,7 @@ const demo = require("./pollPayload");
 const PORT = 3000;
 
 axios.post(
-  `http://localhost:${PORT}/slack`,
+  `http://localhost:${PORT}/api/slack`,
   demo,
   {
     headers: {

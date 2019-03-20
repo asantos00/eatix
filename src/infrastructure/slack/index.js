@@ -23,6 +23,13 @@ exports.sendMessage = (args) => {
     return web.chat.postMessage(args);
 }
 
+exports.sendConfirmedBookingMessage = () => {
+    return web.chat.postMessage({
+        channel: CHANNEL,
+        text: '*Congratulations*, restaurant booked! :tada:'
+    });
+}
+
 const buildRestaurantText = (restaurant) => {
     const name = `*${restaurant.name}*`
     const rating = Array(3).map(() => `::star::`).join('');
