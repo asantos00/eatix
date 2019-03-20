@@ -97,7 +97,7 @@ module.exports = function create({ db, cuisinesClient, messageClient, twilioClie
     '/poll': async (ctx) => {
       const restaurants = db.getTopRestaurants();
       messageClient.sendRestaurantsMessage(restaurants)
-      ctx.status = 200;
+      ctx.body = ''
     }
   }
 
