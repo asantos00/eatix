@@ -182,11 +182,12 @@ module.exports = function create({
   async function sendChoices({ id, username }) {
     const lat = LISBON_LAT,
       lon = LISBON_LON;
-    const { cuisines } = JSON.parse(
-      await cuisinesClient.getCuisines({ lat, lon })
-    );
+
+
+    let { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
 
     const alreadyChoose = (await db.getVotes(username)) || [];
+    cuisines = cuisines.filter(({ cuisine_id }) =>  alreadyChoose.indexOf(cuisine_id) > -1)
 
     const response = {
       channel: id,
