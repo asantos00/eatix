@@ -1,9 +1,32 @@
 {
   "votes": {
+    "UC4A8E1PZ": [
+      {
+        "cuisineName": "German",
+        "cuisineId": 134
+      },
+      {
+        "cuisineName": "Asian",
+        "cuisineId": 3
+      },
+      {
+        "cuisineName": "Argentine",
+        "cuisineId": 151
+      }
+    ],
     "UGWHWSB0D": [
-      "Arabian",
-      "Argentine",
-      "Coffee"
+      {
+        "cuisineName": "Argentine",
+        "cuisineId": 151
+      },
+      {
+        "cuisineName": "British",
+        "cuisineId": 133
+      },
+      {
+        "cuisineName": "American",
+        "cuisineId": 1
+      }
     ]
   }
 }

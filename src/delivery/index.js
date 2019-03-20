@@ -6,16 +6,17 @@ const VoiceResponse = require("twilio").twiml.VoiceResponse;
 const app = new Koa();
 const router = new Router();
 const baseurl = "https://f0b51c0f.ngrok.io";
-const LISBON_LAT = 38.726197
-const LISBON_LON = -9.135169
+const LISBON_LAT = 38.726197;
+const LISBON_LON = -9.135169;
 
 module.exports = function create({
   db,
   cuisinesClient,
   messageClient,
-  twilioClient
+  twilioClient,
+  searchClient,
 }) {
-   /**
+  /**
    * @api {post} /gather-twilio Twilio voice webhook
    * @apiName VoiceWebhook
    * @apiVersion 1.0.0
@@ -54,7 +55,7 @@ module.exports = function create({
     ctx.body = twiml.toString();
   });
 
-   /**
+  /**
    * @api {post} /twilio-book Trigger twilio call
    * @apiName TriggerCall
    * @apiVersion 1.0.0
@@ -90,12 +91,6 @@ module.exports = function create({
   });
 
   router.get("/twilio-call", async ctx => {
-    await twilioClient.calls.create({
-      url: `${baseurl}/api/twilio-book`,
-      to: "+351913429823",
-      from: "+351308811593"
-    });
-
     ctx.status = 200;
   });
 
@@ -112,7 +107,7 @@ module.exports = function create({
                 type: "button",
                 text: {
                   type: "plain_text",
-                  text: "Book a table!",
+                  text: "Pick your cuisines",
                   emoji: true
                 },
                 value: "init_choices"
@@ -121,7 +116,7 @@ module.exports = function create({
                 type: "button",
                 text: {
                   type: "plain_text",
-                  text: "Book a table!",
+                  text: "Reset choices",
                   emoji: true
                 },
                 value: "delete"
@@ -132,23 +127,32 @@ module.exports = function create({
       };
     },
     "/poll": async ctx => {
-      // const cuisineType = db.getTopCuisineType();
-      messageClient.sendRestaurantMessage(
-        {
-          name: 'Braun\'s Restaurant',
-          image: 'http://www.ki-performance.com/sites/default/files/styles/medium/public/2016-04/Steffen%20Braun%20Web.png?itok=9r7KPfiK',
-          rating: 5,
-          id: 1,
-          description: 'The best restaurant in town from our dear CEO. Worth the try!',
-          pricePerPerson: 15,
-        },
-        6
-      );
+      const favoriteCuisineId = db.getTopCuisineType();
+
+      // GERMANY
+      if (favoriteCuisineId === 134) {
+        messageClient.sendRestaurantsMessage(
+          [
+            {
+              name: "Braun's Restaurant",
+              image:
+                "http://www.ki-performance.com/sites/default/files/styles/medium/public/2016-04/Steffen%20Braun%20Web.png?itok=9r7KPfiK",
+              rating: 5,
+              id: 1,
+              description:
+                "The best restaurant in town from our dear CEO. Worth the try!",
+              pricePerPerson: 15
+            },
+          ],
+          6
+        );
+      }
+
       ctx.body = "";
     }
   };
 
-   /**
+  /**
    * @api {post} /slack Slash commands webhook
    * @apiName SlashWebhook
    * @apiVersion 1.0.0
@@ -176,129 +180,138 @@ module.exports = function create({
    */
 
   async function sendChoices({ id, username }) {
-    const lat = LISBON_LAT, lon = LISBON_LON
-    const { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
+    const lat = LISBON_LAT,
+      lon = LISBON_LON;
+    const { cuisines } = JSON.parse(
+      await cuisinesClient.getCuisines({ lat, lon })
+    );
 
-    alreadyChoose = await db.getVotes(username) || []
-    console.log(id)
+    const alreadyChoose = (await db.getVotes(username)) || [];
 
     const response = {
       channel: id,
-      text: 'Hello there',
+      text: "Hello there",
       replace_original: true,
       response_type: "in_channel"
-    }
+    };
     if (alreadyChoose.length < 3) {
       response.blocks = [
         {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": "Hello, I'm *Eatix bot*. What are you up to eat today?" + alreadyChoose.length
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text:
+              "Hello, I'm *Eatix bot*. What are you up to eat today?" +
+              alreadyChoose.length
           }
         },
         {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": "Pick a cuisine type from the list below"
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: "Pick a cuisine type from the list below"
           },
-          "accessory": {
-            "type": "static_select",
-            "action_id": "vote_cuisine",
-            "placeholder": {
-              "type": "plain_text",
-              "text": "Select an item",
-              "emoji": true
+          accessory: {
+            type: "static_select",
+            action_id: "vote_cuisine",
+            placeholder: {
+              type: "plain_text",
+              text: "Select an item",
+              emoji: true
             },
-            "options": cuisines.map(({ cuisine: { cuisine_id: cuisineId, cuisine_name: cuisineName } }) => ({
-              "text": {
-                "type": "plain_text",
-                "text": cuisineName,
-                "emoji": true
-              },
-              //"value": cuisineId.toString(),
-              "value": cuisineName
-            }))
+            options: cuisines.map(
+              ({ cuisine: { cuisine_name: cuisineName, cuisine_id: cuisineId } }) => ({
+                text: {
+                  type: "plain_text",
+                  text: cuisineName,
+                  emoji: true
+                },
+                value: JSON.stringify({cuisineName, cuisineId})
+              })
+            )
           }
-        },
-      ]
-    }else{
-      response.blocks =  [{
-        "type": "section",
-        "text": {
-          "type": "mrkdwn",
-          "text": "Thanks for voting"
         }
-      }]
+      ];
+    } else {
+      response.blocks = [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: "Thanks for voting"
+          }
+        }
+      ];
     }
 
     if (alreadyChoose.length > 0) {
       response.blocks.push({
-        "type": "context",
-        "elements": [
+        type: "context",
+        elements: [
           {
-            "type": "mrkdwn",
-            "text": "Already choose: " + alreadyChoose.join(", ")
+            type: "mrkdwn",
+            text: "Already choose: " + alreadyChoose.map(({cuisineName}) => cuisineName).join(", ")
           }
         ]
-      })
+      });
     }
 
-    return response
-
+    return response;
   }
 
-
-  const axios = require('axios');
-
-  async function respond(responseUrl, message) {
-
-    return axios.post(responseUrl, message,
-      {
-      }
-    );
-  }
-
-
-  router.post('/slack/interact', async ctx => {
-    const { response_url, actions: [action], channel: { id }, user: { username, id: userID } } = JSON.parse(ctx.request.body.payload);
-    console.log(action.value)
+  router.post("/slack/interact", async ctx => {
+    const {
+      actions: [action],
+      channel: { id },
+      user: { id: userID }
+    } = JSON.parse(ctx.request.body.payload);
 
     switch (action.value) {
       case "init_choices":
-        console.log("init_choices")
-        await messageClient.sendMessage(await sendChoices({ id, username: userID }))
-        ctx.body = ""
+        await messageClient.sendMessage(
+          await sendChoices({ id, username: userID })
+        );
+        ctx.body = "";
         ctx.status = 200;
 
-        break
+        break;
       case "delete":
-        db.clearVotes(userID)
+        db.clearVotes(userID);
         ctx.status = 200;
-        ctx.body = ""
+        ctx.body = "";
 
-        break
+        break;
 
+      case "call_restaurant":
+        await twilioClient.calls.create({
+          url: `${baseurl}/api/twilio-book`,
+          to: "+351913429823",
+          from: "+351308811593"
+        });
+
+        break;
       default:
-        console.log(JSON.parse(ctx.request.body.payload))
-        if((db.getVotes(userID) || []).length > 2) {
+        if ((db.getVotes(userID) || []).length > 2) {
           ctx.status = 200;
           ctx.body = "";
 
-          return
+          return;
         }
 
-        await db.addVote({ username: userID, vote: action.selected_option.value })
-
+        await db.addVote({
+          username: userID,
+          vote: JSON.parse(action.selected_option.value)
+        });
 
         ctx.status = 200;
-        await messageClient.sendMessage(await sendChoices({ id, username: userID }))
+        await messageClient.sendMessage(
+          await sendChoices({ id, username: userID })
+        );
 
-        return
+        return;
     }
     ctx.status = 200;
-  })
+  });
 
   app
     .use(accesslog())
@@ -309,5 +322,3 @@ module.exports = function create({
 
   return app;
 };
-
-

@@ -4,13 +4,13 @@ const web = new WebClient(process.env.SLACK_TOKEN);
 const CHANNEL = "GDLEEK01E";
 
 /**
- * @name sendRestaurantMessage
+ * @name sendRestaurantsMessage
  * @object restaurants - restaurants to show for the final choice
  */
-exports.sendRestaurantMessage = (restaurant, numberOfVotes) => {
+exports.sendRestaurantsMessage = (restaurants, numberOfVotes) => {
   return web.chat.postMessage({
     channel: CHANNEL,
-    blocks: buildRestaurantPayload(restaurant, numberOfVotes),
+    blocks: buildRestaurantPayload(restaurants, numberOfVotes),
     text: "Here's the selected restaurant§"
   });
 };
@@ -41,7 +41,7 @@ const buildRestaurantText = ({name, rating, description, pricePerPerson }) => {
   return [`*${name}*`, ratingText, description, `${pricePerPerson}€`].join("\n");
 };
 
-const buildRestaurantPayload = (restaurant, numberOfVotes) => {
+const buildRestaurantPayload = (restaurants, numberOfVotes) => {
   return [
     {
       type: "section",
@@ -53,7 +53,7 @@ const buildRestaurantPayload = (restaurant, numberOfVotes) => {
     {
       type: "divider"
     },
-    {
+    ...restaurants.map((restaurant) => ({
       type: "section",
       text: {
         type: "mrkdwn",
@@ -64,7 +64,7 @@ const buildRestaurantPayload = (restaurant, numberOfVotes) => {
         image_url: restaurant.image,
         alt_text: "alt text for image"
       }
-    },
+    })),
     {
       type: "divider"
     },
@@ -79,7 +79,7 @@ const buildRestaurantPayload = (restaurant, numberOfVotes) => {
             text: "Book a table!",
             emoji: true
           },
-          value: numberOfVotes.toString()
+          value: "call_restaurant"
         }
       ]
     }

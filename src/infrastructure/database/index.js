@@ -9,24 +9,25 @@ db.getTopCuisineType = () => {
   const votes = db.get('votes').value();
 
   const count = Object.keys(votes).reduce((finalCount, key) => {
-    votes[key].forEach(cuisineType => {
-      finalCount[cuisineType] = (finalCount[cuisineType] || 0) + 1;
+    votes[key].forEach(({ cuisineId }) => {
+      finalCount[cuisineId] = (finalCount[cuisineId] || 0) + 1;
     })
 
     return finalCount;
   }, {})
 
 
-  let cuisineType = null;
+  let cuisineId = null;
   let bigger = 0;
+
   for(let key in count) {
     if (count[key] > bigger) {
       bigger = count[key];
-      cuisineType = key;
+      cuisineId = key;
     }
   }
 
-  return cuisineType;
+  return cuisineId;
 }
 
 db.getVotes = (username) =>{
@@ -42,9 +43,6 @@ db.setVotes  = ({username, votes}) => {
 }
 
 db.addVote = ({username, vote}) => {
-  console.log(username)
-  console.log(vote)
-
   votes = db.getVotes(username) || []
   if (votes.length > 2){
     return
