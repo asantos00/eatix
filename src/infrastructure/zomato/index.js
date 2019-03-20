@@ -6,3 +6,4 @@ const client = zomato.createClient({
 })
 
 exports.getCuisines = util.promisify(client.getCuisines);
+exports.search = util.promisify(client.search)
