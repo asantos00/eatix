@@ -34,7 +34,7 @@ module.exports = function create({
     if (answer) {
       switch (answer) {
         case "yes.":
-          twiml.say("Table is confirmed... Thank you, come again!");
+          twiml.say("Ok, thank you");
           messageClient.sendConfirmedBookingMessage();
           break;
         case "no.":
@@ -79,7 +79,7 @@ module.exports = function create({
 
     // @todo make this dynamic
     gather.say(
-      "Hey you piss of shit! We would like to book a table for 3 guys to 1 PM. Say yes or no"
+      "Hello dear sir! I would like to book a table for 6 people to 1 PM under the name K I labs. Answer with yes or no"
     );
 
     // If the user doesn't enter input, loop
@@ -127,26 +127,43 @@ module.exports = function create({
       };
     },
     "/poll": async ctx => {
-      const favoriteCuisineId = db.getTopCuisineType();
+      // const favoriteCuisineId = db.getTopCuisineType();
 
-      // GERMANY
-      if (favoriteCuisineId === 134) {
-        messageClient.sendRestaurantsMessage(
-          [
-            {
-              name: "Braun's Restaurant",
-              image:
-                "http://www.ki-performance.com/sites/default/files/styles/medium/public/2016-04/Steffen%20Braun%20Web.png?itok=9r7KPfiK",
-              rating: 5,
-              id: 1,
-              description:
-                "The best restaurant in town from our dear CEO. Worth the try!",
-              pricePerPerson: 15
-            }
-          ],
-          6
-        );
-      }
+      messageClient.sendRestaurantsMessage(
+        [
+          {
+            name: "Braun's Restaurant",
+            image:
+              "http://www.ki-performance.com/sites/default/files/styles/medium/public/2016-04/Steffen%20Braun%20Web.png?itok=9r7KPfiK",
+            rating: 5,
+            id: 1,
+            description:
+              "The best restaurant in town from our dear CEO. Worth the try!",
+            pricePerPerson: 25
+          },
+          {
+            name: "Andy's Krablergarten",
+            image:
+              "http://www.andyskrablergarten.de/wp-content/uploads/2017/08/cropped-Andys-Krablergarten-2017-08-16-by-Weizhe-Lim.jpg",
+            rating: 4,
+            id: 2,
+            description:
+              "Im Stadtplan von 1850 ist an der Thalkirchnerstraße 2 ein Garten eingezeichnet. Gegenüber, im Eckhaus Müllerstraße 53 bestand eine Bierwirtschaft, die von 1863-1869 von Johann Krabler geführt wurde, nach dem der Garten benannt wurde. ",
+            pricePerPerson: 20
+          },
+          {
+            name: "Hans im Glück ",
+            image:
+              "https://hansimglueck-burgergrill.de/wp-content/uploads/2017/10/HiG_MUENCHEN_Isarpost_300dpi_44.jpg",
+            rating: 3,
+            id: 3,
+            description:
+              "Jeder unserer Burger wird mit frischem Pflücksalat, roten Zwiebeln, sonnengereiften Tomaten und unserer HANS IM GLÜCK-Soße zubereitet. Dazu kannst Du zwischen zwei Brotsorten oder brotlos wählen.",
+            pricePerPerson: 15
+          }
+        ],
+        6
+      );
 
       ctx.body = "";
     }
@@ -183,11 +200,18 @@ module.exports = function create({
     const lat = LISBON_LAT,
       lon = LISBON_LON;
 
-
-    let { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
+    let { cuisines } = JSON.parse(
+      await cuisinesClient.getCuisines({ lat, lon })
+    );
 
     const alreadyChoose = (await db.getVotes(username)) || [];
-    cuisines = cuisines.filter(({ cuisine_id }) =>  alreadyChoose.indexOf(cuisine_id) > -1)
+
+    // go through zomato cuisines
+    // compare with users cuisines
+    const userCuisines = alreadyChoose.map(({ cuisineId }) => cuisineId);
+    cuisines = cuisines.filter(
+      ({ cuisine: { cuisine_id } }) => !userCuisines.includes(cuisine_id)
+    );
 
     const response = {
       channel: id,
@@ -197,16 +221,14 @@ module.exports = function create({
     };
 
     let blocks = [];
-    if (alreadyChoose.length == 0) {
-      blocks.push = {
+    if (alreadyChoose.length === 0) {
+      blocks.push({
         type: "section",
         text: {
           type: "mrkdwn",
-          text:
-            "Hello, I'm *Eatix bot*. What are you up to eat today?" +
-            alreadyChoose.length
+          text: "Hello, I'm *Eatix bot*. What are you up to eat today?"
         }
-      };
+      });
     }
 
     let title = "";
@@ -225,36 +247,34 @@ module.exports = function create({
     }
 
     if (alreadyChoose.length < 3) {
-      blocks.push([
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: title
+      blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: title
+        },
+        accessory: {
+          type: "static_select",
+          action_id: "vote_cuisine",
+          placeholder: {
+            type: "plain_text",
+            text: "Select an item",
+            emoji: true
           },
-          accessory: {
-            type: "static_select",
-            action_id: "vote_cuisine",
-            placeholder: {
-              type: "plain_text",
-              text: "Select an item",
-              emoji: true
-            },
-            options: cuisines.map(
-              ({
-                cuisine: { cuisine_name: cuisineName, cuisine_id: cuisineId }
-              }) => ({
-                text: {
-                  type: "plain_text",
-                  text: cuisineName,
-                  emoji: true
-                },
-                value: JSON.stringify({ cuisineName, cuisineId })
-              })
-            )
-          }
+          options: cuisines.map(
+            ({
+              cuisine: { cuisine_name: cuisineName, cuisine_id: cuisineId }
+            }) => ({
+              text: {
+                type: "plain_text",
+                text: cuisineName,
+                emoji: true
+              },
+              value: JSON.stringify({ cuisineName, cuisineId })
+            })
+          )
         }
-      ]);
+      });
     } else {
       blocks = [
         {
@@ -266,6 +286,7 @@ module.exports = function create({
         }
       ];
     }
+
     if (alreadyChoose.length > 0) {
       blocks.push({
         type: "context",

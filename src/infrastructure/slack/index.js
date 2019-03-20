@@ -69,19 +69,24 @@ const buildRestaurantPayload = (restaurants, numberOfVotes) => {
       type: "divider"
     },
     {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: "Book a table at:"
+      }
+    },
+    {
       type: "actions",
       block_id: "call",
-      elements: [
-        {
+      elements: restaurants.map(restaurant => ({
           type: "button",
           text: {
             type: "plain_text",
-            text: "Book a table!",
+            text: restaurant.name,
             emoji: true
           },
           value: "call_restaurant"
-        }
-      ]
+      }))
     }
   ];
 };

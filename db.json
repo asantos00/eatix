@@ -2,30 +2,31 @@
   "votes": {
     "UC4A8E1PZ": [
       {
-        "cuisineName": "German",
-        "cuisineId": 134
+        "cuisineName": "Alentejana",
+        "cuisineId": 283
       },
       {
-        "cuisineName": "Asian",
-        "cuisineId": 3
+        "cuisineName": "Angolan",
+        "cuisineId": 951
       },
       {
-        "cuisineName": "Argentine",
-        "cuisineId": 151
+        "cuisineName": "BBQ",
+        "cuisineId": 193
       }
     ],
-    "UGWHWSB0D": [
+    "UGWHWSB0D": [],
+    "UCW6RSVB8": [
       {
-        "cuisineName": "Argentine",
-        "cuisineId": 151
+        "cuisineName": "Arabian",
+        "cuisineId": 4
       },
       {
-        "cuisineName": "British",
-        "cuisineId": 133
+        "cuisineName": "Vegetarian",
+        "cuisineId": 308
       },
       {
-        "cuisineName": "American",
-        "cuisineId": 1
+        "cuisineName": "German",
+        "cuisineId": 134
       }
     ]
   }
