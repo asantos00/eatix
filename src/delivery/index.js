@@ -180,7 +180,6 @@ module.exports = function create({
     const { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
 
     alreadyChoose = await db.getVotes(username) || []
-    console.log(id)
 
     const response = {
       channel: id,
@@ -188,20 +187,40 @@ module.exports = function create({
       replace_original: true,
       response_type: "in_channel"
     }
+
+    const blocks = []
+    if (alreadyChoose.length == 0) {
+blocks.push={
+  "type": "section",
+  "text": {
+    "type": "mrkdwn",
+    "text": "Hello, I'm *Eatix bot*. What are you up to eat today?" + alreadyChoose.length
+  }
+}
+    }
+
+    let title =""
+    switch(alreadyChoose.length){
+      case 0:
+        title = "What is your preferred cuisine type for today?"
+        break
+
+      case 1:
+        title = "But you could also go to:"
+        break
+
+      case 2:
+      title = "Pick your last cuisine type"
+      break
+    }
+
     if (alreadyChoose.length < 3) {
-      response.blocks = [
+      blocks.push([
         {
           "type": "section",
           "text": {
             "type": "mrkdwn",
-            "text": "Hello, I'm *Eatix bot*. What are you up to eat today?" + alreadyChoose.length
-          }
-        },
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": "Pick a cuisine type from the list below"
+            "text": title
           },
           "accessory": {
             "type": "static_select",
@@ -222,9 +241,9 @@ module.exports = function create({
             }))
           }
         },
-      ]
+      ])
     }else{
-      response.blocks =  [{
+      blocks = [{
         "type": "section",
         "text": {
           "type": "mrkdwn",
@@ -234,7 +253,7 @@ module.exports = function create({
     }
 
     if (alreadyChoose.length > 0) {
-      response.blocks.push({
+      blocks.push({
         "type": "context",
         "elements": [
           {
@@ -245,8 +264,9 @@ module.exports = function create({
       })
     }
 
-    return response
+    response.blocks = blocks
 
+    return response
   }
 
 
