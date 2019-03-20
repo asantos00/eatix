@@ -178,7 +178,8 @@ async function sendChoices({id}) {
                 "text": cuisineName,
                 "emoji": true
                 },
-                "value": cuisineId.toString(),
+                //"value": cuisineId.toString(),
+                "value": cuisineName
             }))
         }
       },
@@ -196,18 +197,15 @@ async function sendChoices({id}) {
 }
 
 router.post('/slack/interact', async ctx => {
-  console.log(ctx.request.body)
-  const { actions: [action] , channel: {id}} = JSON.parse(ctx.request.body.payload);
+  const { actions: [action] , channel: {id}, user:{username, id: userID}} = JSON.parse(ctx.request.body.payload);
    switch (action.name) {
     case  "init_choices":
       await sendChoices({id})
-      console.log("init_choices")
-
-      return
-    break
-
+      break
+    default:
+      db.addVote({username: userID, vote: action.selected_option.value})
   }
-  console.log(action.selected_option.value);
+  ctx.status = 200;
 })
 
 router.get('/test', async ctx => {
