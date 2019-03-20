@@ -1,11 +1,75 @@
 const Koa = require("koa");
 const Router = require("koa-router");
 const bodyParser = require("koa-bodyparser");
-
+const accesslog = require('koa-accesslog');
+const twilioBodyTemplate = require('./templates/twilio_calls');
+const VoiceResponse = require('twilio').twiml.VoiceResponse;
 const app = new Koa();
 const router = new Router();
+const baseurl = "http://26f51af0.ngrok.io"
 
-module.exports = function create({ db, cuisinesClient, messageClient }) {
+module.exports = function create({ db, cuisinesClient, messageClient, twilioClient }) {
+
+  router.post('/gather-twilio', async ctx => {
+    const twiml = new VoiceResponse();
+
+    const answer = ctx.request.body.SpeechResult.toLowerCase();
+    if (answer) {
+      switch (answer) {
+        case 'yes.':
+          twiml.say('Table is confirmed... fucker!');
+          break;
+        case 'no.':
+          twiml.say('Thank you anyway!');
+          break;
+        default:
+          twiml.say('Sorry, I don\'t understand that choice.');
+          twiml.redirect(`${baseurl}/api/twilio-book`);
+          break;
+      }
+    } else {
+      // If no input was sent, redirect to the /voice route
+      twiml.redirect(`${baseurl}/api/twilio-book`);
+    }
+
+    // Render the response as XML in reply to the webhook request
+    ctx.type = 'application/xml'
+    ctx.body = twiml.toString();
+  });
+
+  router.post("/twilio-book", async ctx => {
+    const twiml = new VoiceResponse();
+
+    // Use the <Gather> verb to collect user input
+    const gather = twiml.gather({
+      input: "speech",
+      speechTimeout: "3",
+      numDigits: 1,
+      action: `${baseurl}/api/gather-twilio`,
+    });
+    // @todo make this dynamic
+    gather.say('Hey you piss of shit! We would like to book a table for 3 guys to 1 PM. Say yes or no');
+  
+    // If the user doesn't enter input, loop
+    twiml.redirect(`${baseurl}/api/twilio-book`);
+  
+    // Render the response as XML in reply to the webhook request
+    ctx.type = 'application/xml'
+    ctx.body = twiml.toString();
+  });
+
+  router.get("/twilio-call", async ctx => {
+    const call = await twilioClient.calls.create({
+       url: `${baseurl}/api/twilio-book`,
+       to: '+351913429823',
+       from: '+351308811593',
+     });
+
+    console.log(call.sid);
+
+    ctx.status = 200;
+  });
+
   router.get("/cuisines", async ctx => {
     const { lat, lon } = ctx.query;
     const cuisines = await cuisinesClient.getCuisines({ lat, lon });
@@ -97,8 +161,9 @@ module.exports = function create({ db, cuisinesClient, messageClient }) {
   });
 
   app
+    .use(accesslog())
     .use(bodyParser())
-    .use(router.routes())
+    .use(router.prefix('/api').routes())
     .use(router.allowedMethods())
     .listen(3000, () => console.log("Listening"));
 
