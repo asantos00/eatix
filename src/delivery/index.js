@@ -15,6 +15,17 @@ module.exports = function create({
   messageClient,
   twilioClient
 }) {
+   /**
+   * @api {post} /gather-twilio Twilio voice webhook
+   * @apiName VoiceWebhook
+   * @apiVersion 1.0.0
+   * @apiDescription Endpoint that receives the result of the twilio conversation with user
+   * @apiGroup Slack
+   *
+   * @apiParam {String} SpeechResult Result of user's answer to the conversation
+   *
+   * @apiSuccess (200) Success
+   */
   router.post("/gather-twilio", async ctx => {
     const twiml = new VoiceResponse();
 
@@ -22,7 +33,7 @@ module.exports = function create({
     if (answer) {
       switch (answer) {
         case "yes.":
-          twiml.say("Table is confirmed... fucker!");
+          twiml.say("Table is confirmed... Thank you, come again!");
           messageClient.sendConfirmedBookingMessage();
           break;
         case "no.":
@@ -43,6 +54,17 @@ module.exports = function create({
     ctx.body = twiml.toString();
   });
 
+   /**
+   * @api {post} /twilio-book Trigger twilio call
+   * @apiName TriggerCall
+   * @apiVersion 1.0.0
+   * @apiDescription Trigger a twilio call to
+   * @apiGroup Slack
+   *
+   * @apiParam {String} SpeechResult Result of user's answer to the conversation
+   *
+   * @apiSuccess (200) Success
+   */
   router.post("/twilio-book", async ctx => {
     const twiml = new VoiceResponse();
 
@@ -53,6 +75,7 @@ module.exports = function create({
       numDigits: 1,
       action: `${baseurl}/api/gather-twilio`
     });
+
     // @todo make this dynamic
     gather.say(
       "Hey you piss of shit! We would like to book a table for 3 guys to 1 PM. Say yes or no"
@@ -76,54 +99,32 @@ module.exports = function create({
     ctx.status = 200;
   });
 
-  router.get("/cuisines", async ctx => {
-    const { lat, lon } = ctx.query;
-    const cuisines = await cuisinesClient.getCuisines({ lat, lon });
-
-    ctx.body = cuisines;
-  });
-
-  router.get("/votes", async ctx => {
-    const votes = db.get("votes");
-
-    ctx.body = votes;
-  });
-
-  router.get("/vote", async ctx => {
-    const { cuisines, userId } = ctx.query;
-    db.set(`votes.${userId}`, cuisines).write();
-
-    ctx.status = 201;
-  });
-
   const commandUseCases = {
     "/eatix": async ctx => {
       ctx.body = {
         text: "What would you like to do?",
-        attachments: [
+        blocks: [
           {
-            color: "#3AA3E3",
-            attachment_type: "default",
-            callback_id: "wopr_game",
-            actions: [
+            type: "actions",
+            block_id: "call",
+            elements: [
               {
-                name: "init_choices",
-                text: "Choose Cuisines",
                 type: "button",
-                value: "chess"
+                text: {
+                  type: "plain_text",
+                  text: "Book a table!",
+                  emoji: true
+                },
+                value: "init_choices"
               },
               {
-                name: "delete",
-                text: "Delete Choices",
-                style: "danger",
                 type: "button",
-                value: "war",
-                confirm: {
-                  title: "Are you sure?",
-                  text: "Are you sure you want to clear your choices?",
-                  ok_text: "Yes",
-                  dismiss_text: "No"
-                }
+                text: {
+                  type: "plain_text",
+                  text: "Book a table!",
+                  emoji: true
+                },
+                value: "delete"
               }
             ]
           }
@@ -131,13 +132,33 @@ module.exports = function create({
       };
     },
     "/poll": async ctx => {
-      const restaurants = db.getTopRestaurants();
-      messageClient.sendRestaurantsMessage(restaurants);
+      // const cuisineType = db.getTopCuisineType();
+      messageClient.sendRestaurantMessage(
+        {
+          name: 'Braun\'s Restaurant',
+          image: 'http://www.ki-performance.com/sites/default/files/styles/medium/public/2016-04/Steffen%20Braun%20Web.png?itok=9r7KPfiK',
+          rating: 5,
+          id: 1,
+          description: 'The best restaurant in town from our dear CEO. Worth the try!',
+          pricePerPerson: 15,
+        },
+        6
+      );
       ctx.body = "";
     }
   };
 
-  // Receives incoming webhook from slack slash command
+   /**
+   * @api {post} /slack Slash commands webhook
+   * @apiName SlashWebhook
+   * @apiVersion 1.0.0
+   * @apiDescription Endpoint that receives slash command's webhooks
+   * @apiGroup Slack
+   *
+   * @apiParam {String} command Selected option for the interaction
+   *
+   * @apiSuccess (200) Success
+   */
   router.post("/slack", async ctx => {
     await commandUseCases[ctx.request.body.command](ctx);
   });
@@ -159,10 +180,13 @@ module.exports = function create({
       channel: { id },
       user: { id: userID }
     } = JSON.parse(ctx.request.body.payload);
+    console.log(action)
     switch (action.name) {
       case "init_choices":
         await sendChoices({ id });
         break;
+      case "call":
+        console.log('CALLLIIIIING')
       default:
         db.addVote({ username: userID, vote: action.selected_option.value });
     }

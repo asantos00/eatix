@@ -21,30 +21,28 @@ db.addVote = (({username, vote}) => {
   db.setVotes({username, votes})
 });
 
-db.getTopRestaurants = () => {
-  return [
-    {
-      id: 1,
-      votes: 4,
-      name: 'Steffen\'s Restaurant',
-      image: 'https://file.videopolis.com/D/9dc9f4ba-0b2d-4cbb-979f-fee7be8a4198/8485.11521.brussels.the-hotel-brussels.amenity.restaurant-AD3WAP2L-13000-853x480.jpeg',
-      rating: 4,
-    },
-    {
-      id: 2,
-      votes: 3,
-      name: 'KI Group\'s House',
-      image: 'https://file.videopolis.com/D/9dc9f4ba-0b2d-4cbb-979f-fee7be8a4198/8485.11521.brussels.the-hotel-brussels.amenity.restaurant-AD3WAP2L-13000-853x480.jpeg',
-      rating: 3,
-    },
-    {
-      id: 3,
-      votes: 2,
-      name: 'Braun\'s',
-      image: 'https://file.videopolis.com/D/9dc9f4ba-0b2d-4cbb-979f-fee7be8a4198/8485.11521.brussels.the-hotel-brussels.amenity.restaurant-AD3WAP2L-13000-853x480.jpeg',
-      rating: 2,
-    },
-  ];
+db.getTopCuisineType = () => {
+  const votes = db.get('votes').value();
+
+  const count = Object.keys(votes).reduce((finalCount, key) => {
+    votes[key].forEach(cuisineType => {
+      finalCount[cuisineType] = (finalCount[cuisineType] || 0) + 1;
+    })
+
+    return finalCount;
+  }, {})
+
+
+  let cuisineType = null;
+  let bigger = 0;
+  for(let key in count) {
+    if (count[key] > bigger) {
+      bigger = count[key];
+      cuisineType = key;
+    }
+  }
+
+  return cuisineType;
 }
 
 module.exports = db;

@@ -8,6 +8,7 @@ const slack = require('./infrastructure/slack');
 
 createDelivery({
   cuisinesClient: zomato,
+  searchClient: zomato,
   db,
   messageClient: slack,
   twilioClient: twilio,
