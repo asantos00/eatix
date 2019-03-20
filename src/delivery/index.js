@@ -142,13 +142,13 @@ router.post('/slack', async (ctx) => {
 
 })
 
-async function sendChoices() {
+async function sendChoices({id}) {
   const lat = LISBON_LAT, lon=LISBON_LON
   const { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
 
   console.log("sendChoices")
   await messageClient.sendMessage({
-    channel: 'GDLEEK01E',
+    channel: id,
     text: 'Hello there',
     blocks: [
         {
@@ -187,10 +187,11 @@ async function sendChoices() {
 }
 
 router.post('/slack/interact', async ctx => {
-  const { actions: [action] } = JSON.parse(ctx.request.body.payload);
-  switch (action.name) {
+  console.log(ctx.request.body)
+  const { actions: [action] , channel: {id}} = JSON.parse(ctx.request.body.payload);
+   switch (action.name) {
     case  "init_choices":
-      await sendChoices()
+      await sendChoices({id})
       console.log("init_choices")
 
       return
