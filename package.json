@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "start": "node src/index.js",
+    "start": "node ./src/index.js",
     "dev": "nodemon",
     "mock:slack:interaction": "node scripts/slack/interact.js",
     "mock:slack:poll": "node scripts/slack/poll.js",
@@ -22,6 +22,9 @@
     "slack",
     "twilio"
   ],
+  "engines": {
+    "node": "10.5.0"
+  },
   "apidoc": {
     "title": "KI-Eatix api docs",
     "url": "https://github.kigroup.de/ki-hacks-march19/eatix"

@@ -215,7 +215,7 @@ router.get('/test', async ctx => {
     .use(bodyParser())
     .use(router.prefix('/api').routes())
     .use(router.allowedMethods())
-    .listen(3000, () => console.log("Listening"));
+    .listen(process.env.PORT || 80, () => console.log("Listening"));
 
   return app;
 };
