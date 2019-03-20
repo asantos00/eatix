@@ -2,13 +2,10 @@ const Koa = require("koa");
 const Router = require("koa-router");
 const bodyParser = require("koa-bodyparser");
 const accesslog = require('koa-accesslog');
-const twilioBodyTemplate = require('./templates/twilio_calls');
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
 const app = new Koa();
 const router = new Router();
 const baseurl = "http://26f51af0.ngrok.io"
-const LISBON_LAT = 38.726197
-const LISBON_LON = -9.135169
 
 module.exports = function create({ db, cuisinesClient, messageClient, twilioClient }) {
 
@@ -88,22 +85,24 @@ module.exports = function create({ db, cuisinesClient, messageClient, twilioClie
 
   router.get("/vote", async ctx => {
     const { cuisines, userId } = ctx.query;
-    console.log(ctx);
-
     db.set(`votes.${userId}`, cuisines).write();
 
     ctx.status = 201;
   });
 
+  const commandUseCases = {
+    '/eatix': async (ctx) => {
+      ctx.status = 200;
+    },
+    '/poll': async (ctx) => {
+      const restaurants = db.getTopRestaurants();
+      messageClient.sendRestaurantsMessage(restaurants)
+      ctx.status = 200;
+    }
+  }
 
-// Receives incoming webhook from slack slash command
+  // Receives incoming webhook from slack slash command
 router.post('/slack', async (ctx) => {
-  //const { text } = ctx.request.body;
-  const lat = LISBON_LAT, lon=LISBON_LON
-  const { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
-
-  const cuisines_names =  cuisines.map( ({ cuisine }) =>  cuisine.cuisine_name)
-
   ctx.body={
     "text": "What would you like to do?",
     "attachments": [
@@ -137,65 +136,19 @@ router.post('/slack', async (ctx) => {
         }
     ]
   }
-  //ctx.status = 200;
-  //ctx.body = { "text": cuisines_names.join(", ")};
-
 })
 
-async function sendChoices({id}) {
-  const lat = LISBON_LAT, lon=LISBON_LON
-  const { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
-
-  console.log("sendChoices")
-  await messageClient.sendMessage({
-    channel: id,
-    text: 'Hello there',
-    blocks: [
-        {
-          "type": "section",
-          "text": {
-              "type": "mrkdwn",
-              "text": "Hello, I'm *Eatix bot*. What are you up to eat today?"
-          }
-        },
-        {
-          "type": "section",
-          "text": {
-              "type": "mrkdwn",
-              "text": "Pick a cuisine type from the list below"
-        },
-        "accessory": {
-            "type": "static_select",
-            "action_id": "vote_cuisine",
-            "placeholder": {
-                "type": "plain_text",
-                "text": "Select an item",
-                "emoji": true
-            },
-            "options": cuisines.map(({ cuisine: { cuisine_id: cuisineId, cuisine_name: cuisineName }}) => ({
-                "text": {
-                "type": "plain_text",
-                "text": cuisineName,
-                "emoji": true
-                },
-                //"value": cuisineId.toString(),
-                "value": cuisineName
-            }))
-        }
-      },
-      {
-        "type": "context",
-        "elements": [
-          {
-            "type": "mrkdwn",
-            "text": "Already choose: "
-          }
-        ]
-      }
-    ],
-});
-}
-
+/**
+  * @api {post} /slack Interactions webhook
+  * @apiName InteractionWebhook
+  * @apiVersion 1.0.0
+  * @apiDescription Endpoint that receives webhooks from slack and handles them
+  * @apiGroup Slack
+  *
+  * @apiParam {String} payload.action.selected_option.value Selected option for the interaction
+  *
+  * @apiSuccess (200) Success
+*/
 router.post('/slack/interact', async ctx => {
   const { actions: [action] , channel: {id}, user:{username, id: userID}} = JSON.parse(ctx.request.body.payload);
    switch (action.name) {
