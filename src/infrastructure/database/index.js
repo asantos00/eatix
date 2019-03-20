@@ -5,22 +5,6 @@ const db = low(adapter)
 
 db.defaults({votes: {}}).write();
 
-db.getVotes = ((username) =>{
-  const a = db.get('votes').value()
-
-  return a[username]
-});
-
-db.setVotes = (({username, votes}) => {
-  db.set(`votes.${username}`, votes).write();
-});
-
-db.addVote = (({username, vote}) => {
-  let votes = db.getVotes(username) || []
-  votes.push(vote)
-  db.setVotes({username, votes})
-});
-
 db.getTopCuisineType = () => {
   const votes = db.get('votes').value();
 
@@ -43,6 +27,31 @@ db.getTopCuisineType = () => {
   }
 
   return cuisineType;
+}
+
+db.getVotes = (username) =>{
+  const a = db.get('votes').value()
+
+  return a[username]
+}
+
+db.clearVotes = (username) => db.setVotes({ username, votes:[]})
+
+db.setVotes  = ({username, votes}) => {
+  db.set(`votes.${username}`, votes).write();
+}
+
+db.addVote = ({username, vote}) => {
+  console.log(username)
+  console.log(vote)
+
+  votes = db.getVotes(username) || []
+  if (votes.length > 2){
+    return
+  }
+
+  votes.push(vote)
+  db.setVotes({username, votes})
 }
 
 module.exports = db;

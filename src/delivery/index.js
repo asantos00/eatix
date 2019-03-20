@@ -174,134 +174,131 @@ module.exports = function create({
    *
    * @apiSuccess (200) Success
    */
-  router.post("/slack/interact", async ctx => {
-    const {
-      actions: [action],
-      channel: { id },
-      user: { id: userID }
-    } = JSON.parse(ctx.request.body.payload);
-    console.log(action)
-    switch (action.name) {
+
+  async function sendChoices({ id, username }) {
+    const lat = LISBON_LAT, lon = LISBON_LON
+    const { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
+
+    alreadyChoose = await db.getVotes(username) || []
+    console.log(id)
+
+    const response = {
+      channel: id,
+      text: 'Hello there',
+      replace_original: true,
+      response_type: "in_channel"
+    }
+    if (alreadyChoose.length < 3) {
+      response.blocks = [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "Hello, I'm *Eatix bot*. What are you up to eat today?" + alreadyChoose.length
+          }
+        },
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "Pick a cuisine type from the list below"
+          },
+          "accessory": {
+            "type": "static_select",
+            "action_id": "vote_cuisine",
+            "placeholder": {
+              "type": "plain_text",
+              "text": "Select an item",
+              "emoji": true
+            },
+            "options": cuisines.map(({ cuisine: { cuisine_id: cuisineId, cuisine_name: cuisineName } }) => ({
+              "text": {
+                "type": "plain_text",
+                "text": cuisineName,
+                "emoji": true
+              },
+              //"value": cuisineId.toString(),
+              "value": cuisineName
+            }))
+          }
+        },
+      ]
+    }else{
+      response.blocks =  [{
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "Thanks for voting"
+        }
+      }]
+    }
+
+    if (alreadyChoose.length > 0) {
+      response.blocks.push({
+        "type": "context",
+        "elements": [
+          {
+            "type": "mrkdwn",
+            "text": "Already choose: " + alreadyChoose.join(", ")
+          }
+        ]
+      })
+    }
+
+    return response
+
+  }
+
+
+  const axios = require('axios');
+
+  async function respond(responseUrl, message) {
+
+    return axios.post(responseUrl, message,
+      {
+      }
+    );
+  }
+
+
+  router.post('/slack/interact', async ctx => {
+    const { response_url, actions: [action], channel: { id }, user: { username, id: userID } } = JSON.parse(ctx.request.body.payload);
+    console.log(action.value)
+
+    switch (action.value) {
       case "init_choices":
-        await sendChoices({ id });
-        break;
-      case "call":
-        console.log('CALLLIIIIING')
+        console.log("init_choices")
+        await messageClient.sendMessage(await sendChoices({ id, username: userID }))
+        ctx.body = ""
+        ctx.status = 200;
+
+        break
+      case "delete":
+        db.clearVotes(userID)
+        ctx.status = 200;
+        ctx.body = ""
+
+        break
+
       default:
-        db.addVote({ username: userID, vote: action.selected_option.value });
+        console.log(JSON.parse(ctx.request.body.payload))
+        if((db.getVotes(userID) || []).length > 2) {
+          ctx.status = 200;
+          ctx.body = "";
+
+          return
+        }
+
+        await db.addVote({ username: userID, vote: action.selected_option.value })
+
+
+        ctx.status = 200;
+        await messageClient.sendMessage(await sendChoices({ id, username: userID }))
+
+        return
     }
     ctx.status = 200;
-  });
-
-  router.get("/test", async ctx => {
-    const { lat, lon } = ctx.query;
-    const { cuisines } = JSON.parse(
-      await cuisinesClient.getCuisines({ lat, lon })
-    );
-
-    const res = await messageClient.sendMessage({
-      channel: "GDLEEK01E",
-      text: "Hello there",
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: "Hello, I'm *Eatix bot*. What are you up to eat today?"
-          }
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: "Pick a cuisine type from the list below"
-          },
-          accessory: {
-            type: "static_select",
-            action_id: "vote_cuisine",
-            placeholder: {
-              type: "plain_text",
-              text: "Select an item",
-              emoji: true
-            },
-            options: cuisines.map(
-              ({
-                cuisine: { cuisine_id: cuisineId, cuisine_name: cuisineName }
-              }) => ({
-                text: {
-                  type: "plain_text",
-                  text: cuisineName,
-                  emoji: true
-                },
-                value: cuisineId.toString()
-              })
-            )
-          }
-        }
-      ]
-    });
-
-    ctx.body = res;
-  });
-
-  async function sendChoices({ id }) {
-    const lat = LISBON_LAT, lon = LISBON_LON;
-    const { cuisines } = JSON.parse(
-      await cuisinesClient.getCuisines({ lat, lon })
-    );
-
-    await messageClient.sendMessage({
-      channel: id,
-      text: "Hello there",
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: "Hello, I'm *Eatix bot*. What are you up to eat today?"
-          }
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: "Pick a cuisine type from the list below"
-          },
-          accessory: {
-            type: "static_select",
-            action_id: "vote_cuisine",
-            placeholder: {
-              type: "plain_text",
-              text: "Select an item",
-              emoji: true
-            },
-            options: cuisines.map(
-              ({
-                cuisine: { cuisine_name: cuisineName }
-              }) => ({
-                text: {
-                  type: "plain_text",
-                  text: cuisineName,
-                  emoji: true
-                },
-                //"value": cuisineId.toString(),
-                value: cuisineName
-              })
-            )
-          }
-        },
-        {
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: "Already choose: "
-            }
-          ]
-        }
-      ]
-    });
-  }
+  })
 
   app
     .use(accesslog())
@@ -312,3 +309,5 @@ module.exports = function create({
 
   return app;
 };
+
+
