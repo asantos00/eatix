@@ -7,6 +7,8 @@ const VoiceResponse = require('twilio').twiml.VoiceResponse;
 const app = new Koa();
 const router = new Router();
 const baseurl = "http://26f51af0.ngrok.io"
+const LISBON_LAT = 38.726197
+const LISBON_LON = -9.135169
 
 module.exports = function create({ db, cuisinesClient, messageClient, twilioClient }) {
 
@@ -49,10 +51,10 @@ module.exports = function create({ db, cuisinesClient, messageClient, twilioClie
     });
     // @todo make this dynamic
     gather.say('Hey you piss of shit! We would like to book a table for 3 guys to 1 PM. Say yes or no');
-  
+
     // If the user doesn't enter input, loop
     twiml.redirect(`${baseurl}/api/twilio-book`);
-  
+
     // Render the response as XML in reply to the webhook request
     ctx.type = 'application/xml'
     ctx.body = twiml.toString();
@@ -69,6 +71,7 @@ module.exports = function create({ db, cuisinesClient, messageClient, twilioClie
 
     ctx.status = 200;
   });
+
 
   router.get("/cuisines", async ctx => {
     const { lat, lon } = ctx.query;
@@ -92,53 +95,147 @@ module.exports = function create({ db, cuisinesClient, messageClient, twilioClie
     ctx.status = 201;
   });
 
-  // Receives incoming webhook from slack slash command
-  router.post("/slack", async ctx => {
-    const { text } = ctx.request.body;
-    console.log(text);
 
-    ctx.status = 200;
-  });
+// Receives incoming webhook from slack slash command
+router.post('/slack', async (ctx) => {
+  //const { text } = ctx.request.body;
+  const lat = LISBON_LAT, lon=LISBON_LON
+  const { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
 
-  router.post("/slack/interact", async ctx => {
-    const {
-      actions: [action]
-    } = JSON.parse(ctx.request.body.payload);
-    console.log(action.selected_option.value);
+  const cuisines_names =  cuisines.map( ({ cuisine }) =>  cuisine.cuisine_name)
 
-    ctx.status = 200;
-  });
-
-  router.get("/test", async ctx => {
-    const { lat, lon } = ctx.query;
-    const { cuisines } = JSON.parse(
-      await cuisinesClient.getCuisines({ lat, lon })
-    );
-
-    const res = await messageClient.sendMessage({
-      channel: "GDLEEK01E",
-      text: "Hello there",
-      blocks: [
+  ctx.body={
+    "text": "What would you like to do?",
+    "attachments": [
         {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: "Hello, I'm *Eatix bot*. What are you up to eat today?"
+            "color": "#3AA3E3",
+            "attachment_type": "default",
+            "callback_id": "wopr_game",
+            "actions": [
+
+                {
+                    "name": "init_choices",
+                    "text": "Choose Cuisines",
+                    "type": "button",
+                    "value": "chess",
+                },
+                {
+                    "name": "delete",
+                    "text": "Delete Choices",
+                    "style": "danger",
+                    "type": "button",
+                    "value": "war",
+                    "confirm": {
+                        "title": "Are you sure?",
+                        "text": "Are you sure you want to clear your choices?",
+                        "ok_text": "Yes",
+                        "dismiss_text": "No"
+                    },
+
+                  }
+            ]
+        }
+    ]
+  }
+  //ctx.status = 200;
+  //ctx.body = { "text": cuisines_names.join(", ")};
+
+})
+
+async function sendChoices({id}) {
+  const lat = LISBON_LAT, lon=LISBON_LON
+  const { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
+
+  console.log("sendChoices")
+  await messageClient.sendMessage({
+    channel: id,
+    text: 'Hello there',
+    blocks: [
+        {
+          "type": "section",
+          "text": {
+              "type": "mrkdwn",
+              "text": "Hello, I'm *Eatix bot*. What are you up to eat today?"
           }
         },
         {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: "Pick a cuisine type from the list below"
-          },
-          accessory: {
-            type: "static_select",
-            action_id: "vote_cuisine",
-            placeholder: {
-              type: "plain_text",
-              text: "Select an item",
-              emoji: true
+          "type": "section",
+          "text": {
+              "type": "mrkdwn",
+              "text": "Pick a cuisine type from the list below"
+        },
+        "accessory": {
+            "type": "static_select",
+            "action_id": "vote_cuisine",
+            "placeholder": {
+                "type": "plain_text",
+                "text": "Select an item",
+                "emoji": true
+            },
+            "options": cuisines.map(({ cuisine: { cuisine_id: cuisineId, cuisine_name: cuisineName }}) => ({
+                "text": {
+                "type": "plain_text",
+                "text": cuisineName,
+                "emoji": true
+                },
+                //"value": cuisineId.toString(),
+                "value": cuisineName
+            }))
+        }
+      },
+      {
+        "type": "context",
+        "elements": [
+          {
+            "type": "mrkdwn",
+            "text": "Already choose: "
+          }
+        ]
+      }
+    ],
+});
+}
+
+router.post('/slack/interact', async ctx => {
+  const { actions: [action] , channel: {id}, user:{username, id: userID}} = JSON.parse(ctx.request.body.payload);
+   switch (action.name) {
+    case  "init_choices":
+      await sendChoices({id})
+      break
+    default:
+      db.addVote({username: userID, vote: action.selected_option.value})
+  }
+  ctx.status = 200;
+})
+
+router.get('/test', async ctx => {
+  const { lat, lon } = ctx.query;
+  const { cuisines } = JSON.parse(await cuisinesClient.getCuisines({ lat, lon }));
+
+  const res = await messageClient.sendMessage({
+    channel: 'GDLEEK01E',
+    text: 'Hello there',
+    blocks: [
+        {
+          "type": "section",
+          "text": {
+              "type": "mrkdwn",
+              "text": "Hello, I'm *Eatix bot*. What are you up to eat today?"
+          }
+        },
+        {
+          "type": "section",
+          "text": {
+              "type": "mrkdwn",
+              "text": "Pick a cuisine type from the list below"
+        },
+        "accessory": {
+            "type": "static_select",
+            "action_id": "vote_cuisine",
+            "placeholder": {
+                "type": "plain_text",
+                "text": "Select an item",
+                "emoji": true
             },
             options: cuisines.map(
               ({
