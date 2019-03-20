@@ -58,7 +58,7 @@ module.exports = function create({ db, cuisinesClient, messageClient, twilioClie
     ctx.body = twiml.toString();
   });
 
-  router.get("/test-twilio-call", async ctx => {
+  router.get("/twilio-call", async ctx => {
     const call = await twilioClient.calls.create({
        url: `${baseurl}/api/twilio-book`,
        to: '+351913429823',
