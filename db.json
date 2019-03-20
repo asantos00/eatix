@@ -1,33 +1,9 @@
 {
   "votes": {
-<<<<<<< HEAD
     "UGWHWSB0D": [
-      "American",
       "Arabian",
-      "Angolan",
-      "Arabian"
-=======
-<<<<<<< Updated upstream
-    "1": [
-      "1",
-      "2"
-    ],
-    "2": [
-      "7",
-      "5"
-=======
-    "UGWHWSB0D": [
-      "American",
-      "Belgian",
-      "Alentejana"
-    ],
-    "UC4A8E1PZ": [
-      "Angolan",
-      "Author",
-      "Arabian"
->>>>>>> Stashed changes
->>>>>>> basic flow done
+      "Argentine",
+      "Coffee"
     ]
-  },
-  "UGWHWSB0D": 1
+  }
 }

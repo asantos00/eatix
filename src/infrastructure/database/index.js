@@ -42,6 +42,9 @@ db.setVotes  = ({username, votes}) => {
 }
 
 db.addVote = ({username, vote}) => {
+  console.log(username)
+  console.log(vote)
+
   votes = db.getVotes(username) || []
   if (votes.length > 2){
     return
