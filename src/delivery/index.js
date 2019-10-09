@@ -5,7 +5,7 @@ const accesslog = require("koa-accesslog");
 const VoiceResponse = require("twilio").twiml.VoiceResponse;
 const app = new Koa();
 const router = new Router();
-const baseurl = "https://f0b51c0f.ngrok.io";
+const baseurl = process.env.BASE_URL;
 const LISBON_LAT = 38.726197;
 const LISBON_LON = -9.135169;
 
